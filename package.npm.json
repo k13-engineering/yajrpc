@@ -1,0 +1,27 @@
+{
+  "name": "@k13engineering/yajrpc",
+  "type": "module",
+  "description": "Boilerplate project",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/lib/index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k13-engineering/yajrpc.git"
+  },
+  "keywords": [
+    "node",
+    "jrpc"
+  ],
+  "author": "Simon Kadisch",
+  "license": "LGPL 2.1",
+  "bugs": {
+    "url": "https://github.com/k13-engineering/yajrpc/issues"
+  },
+  "homepage": "https://github.com/k13-engineering/yajrpc#readme"
+}

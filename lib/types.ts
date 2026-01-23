@@ -1,3 +1,4 @@
+/* c8 ignore start */
 type TJsonRpcParameterValue = Exclude<unknown, undefined>;
 type TRequestResponseValue = NonNullable<unknown> | null;
 
@@ -94,3 +95,4 @@ export type {
   TRequestResponseValue,
   TJsonRpcError,
 };
+/* c8 ignore end */

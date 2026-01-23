@@ -1,5 +1,5 @@
 {
-  "name": "yajrpc",
+  "name": "@k13engineering/yajrpc",
   "type": "module",
   "description": "Boilerplate project",
   "publishConfig": {

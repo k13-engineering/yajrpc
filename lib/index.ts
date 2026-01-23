@@ -1,97 +1,28 @@
-/* eslint-disable max-statements,complexity */
-
-type TJsonRpcRequest = {
-  jsonrpc: "2.0";
-  method: string;
-  params?: Array<any> | Record<string, any>;
-  id?: string | number | null;
-};
-
-type TJsonRpcParameterValue = Exclude<unknown, undefined>;
-type TRequestResponseValue = NonNullable<unknown>;
-
-type TJsonRpcParameters = Array<TJsonRpcParameterValue> | Record<string, TJsonRpcParameterValue>;
-
-type TJsonRpcOptionalId = string | number | null;
-type TJsonRpcMandatoryId = string | number;
-
-type TJsonRpcNotification = {
-  jsonrpc: "2.0";
-  method: string;
-  params?: TJsonRpcParameters;
-  id?: undefined;
-};
-
-type TJsonRpcSuccessResponse = {
-  jsonrpc: "2.0";
-  result: TRequestResponseValue;
-  error?: undefined;
-  id: TJsonRpcMandatoryId;
-};
-
-type TJsonRpcErrorResponse = {
-  jsonrpc: "2.0";
-  error: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-  result?: undefined;
-  id: TJsonRpcOptionalId;
-};
-
-type TJsonRpcMessage = TJsonRpcRequest | TJsonRpcNotification | TJsonRpcSuccessResponse | TJsonRpcErrorResponse;
-
-
-type TRequestSuccessResponse = {
-  result: TRequestResponseValue;
-  error?: never;
-  ignore?: never;
-};
-
-type TRequestErrorResponse = {
-  result?: never;
-  error: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-  ignore?: never;
-};
-
-type TRequestResponse = TRequestSuccessResponse | TRequestErrorResponse;
-
-type TRequestNoResponse = {
-  result?: never;
-  error?: never;
-  ignore: true;
-};
-
-type TRequestMaybeResponse = TRequestSuccessResponse | TRequestErrorResponse | TRequestNoResponse;
-
-type TRequestSuccessResult = {
-  response: TRequestResponse;
-  error?: undefined;
-};
-
-type TRequestErrorResult = {
-  response?: undefined;
-  error: Error
-};
-
-type TRequestResult = TRequestSuccessResult | TRequestErrorResult;
+import { coerceJrpcMessage } from "./coerce.ts";
+import type { TJsonRpcError, TJsonRpcMandatoryId, TJsonRpcMessage, TJsonRpcParameters, TRequestResponse, TRequestResponseValue, TRequestResult } from "./types.ts";
 
 type TPendingRequestHandle = {
   resolve: (args: TRequestResult) => void;
 };
 
-type TRequestHandler = (args: { method: string, params: TJsonRpcParameters }) => Promise<TRequestMaybeResponse>;
-type TNotificationHandler = (args: { method: string, params: TJsonRpcParameters }) => void;
+type TRequestHandlerResponse = {
+  result: TRequestResponseValue;
+  error: undefined;
+} | {
+  result: undefined;
+  error: TJsonRpcError;
+} | {
+  result: undefined;
+  error: undefined;
+};
+
+type TRequestHandler = (args: { method: string, params: TJsonRpcParameters | undefined }) => Promise<TRequestHandlerResponse>;
+type TNotificationHandler = (args: { method: string, params: TJsonRpcParameters | undefined }) => void;
 
 type TNotifyMethod = (args: { method: string, params: TJsonRpcParameters }) => void;
 type TRequestMethod = (args: { method: string, params: TJsonRpcParameters, timeoutMs?: number }) => Promise<TRequestResult>;
 
-const create = ({
+const createJrpc = ({
   sendMessage,
   handleRequest,
   handleNotification
@@ -110,7 +41,7 @@ const create = ({
   }: {
     id: TJsonRpcMandatoryId,
     method: string,
-    params: TJsonRpcParameters
+    params: TJsonRpcParameters | undefined
   }): { error: Error | undefined } => {
 
     handleRequest({ method, params }).then((response) => {
@@ -123,7 +54,10 @@ const create = ({
             error: response.error
           }
         });
-      } else if (response.result !== undefined) {
+        return;
+      }
+
+      if (response.result !== undefined) {
         sendMessage({
           message: {
             jsonrpc: "2.0",
@@ -131,26 +65,12 @@ const create = ({
             id
           }
         });
-      } else {
-        // send nothing if we neither have a result nor an error
-        // this is a valid case
+        return;
       }
+
+      // send nothing if we neither have a result nor an error
+      // this is a valid case
     });
-
-    return {
-      error: undefined
-    };
-  };
-
-  const receivedNotification = ({
-    method,
-    params
-  }: {
-    method: string,
-    params: TJsonRpcParameters
-  }): { error: Error | undefined } => {
-
-    handleNotification({ method, params });
 
     return {
       error: undefined
@@ -177,85 +97,59 @@ const create = ({
     };
   };
 
-  const receivedMessage = ({ message }: { message: any }): { error: Error | undefined } => {
+  // eslint-disable-next-line complexity
+  const receivedMessage = ({ message }: { message: unknown }): { error: Error | undefined } => {
     if (closed) {
       throw Error("connection closed");
     }
 
-    if (typeof message !== "object") {
+    const { error: coerceError, jrpcMessage } = coerceJrpcMessage({ message });
+    if (coerceError !== undefined) {
       return {
-        error: Error("invalid message")
+        error: coerceError
       };
     }
 
-    const { jsonrpc, id, method, params, result, error, ...otherFields } = message;
-
-    if (jsonrpc !== "2.0") {
+    if (jrpcMessage.id === null) {
       return {
-        error: Error("invalid jsonrpc version")
+        error: Error("this library does not support null ids")
       };
     }
 
-    const keysOfOtherFields = Object.keys(otherFields);
+    if (jrpcMessage.id === undefined) {
+      handleNotification({
+        method: jrpcMessage.method,
+        params: jrpcMessage.params
+      });
 
-    if (keysOfOtherFields.length > 0) {
-      return {
-        error: Error(`unexpected field "${keysOfOtherFields[0]}" in message`)
-      };
+      return { error: undefined };
     }
 
-    if (id === undefined || id === null) {
-      if (error !== undefined) {
-        return {
-          error: Error("remote end gave an error without id")
-        };
-      } else {
-
-        if (result !== undefined) {
-          return {
-            error: Error("remote end gave a result without id")
-          };
+    if (jrpcMessage.result !== undefined) {
+      return receivedResponse({
+        id: jrpcMessage.id,
+        response: {
+          result: jrpcMessage.result,
+          error: undefined
         }
-
-        return receivedNotification({
-          method,
-          params
-        });
-      }
-    } else {
-      if (error !== undefined) {
-
-        if (result !== undefined) {
-          return {
-            error: Error("both result and error in response")
-          };
-        }
-
-        return receivedResponse({
-          id,
-          response: {
-            result: undefined,
-            error
-          }
-        });
-      } else {
-        if (result !== undefined) {
-          return receivedResponse({
-            id,
-            response: {
-              result,
-              error: undefined
-            }
-          });
-        } else {
-          return receivedRequest({
-            id,
-            method,
-            params
-          });
-        }
-      }
+      });
     }
+
+    if (jrpcMessage.error !== undefined) {
+      return receivedResponse({
+        id: jrpcMessage.id,
+        response: {
+          result: undefined,
+          error: jrpcMessage.error
+        }
+      });
+    }
+
+    return receivedRequest({
+      id: jrpcMessage.id,
+      method: jrpcMessage.method,
+      params: jrpcMessage.params
+    });
   };
 
   const close = () => {
@@ -266,7 +160,8 @@ const create = ({
     Object.keys(pendingRequests).forEach((id) => {
       const pendingRequest = pendingRequests[id];
       pendingRequest.resolve({
-        error: Error("connection closed")
+        error: Error("connection closed"),
+        response: undefined
       });
     });
 
@@ -284,12 +179,13 @@ const create = ({
     const requestId = requestIdCounter;
     requestIdCounter += 1;
 
-    let timeoutHandle: any = undefined;
+    let timeoutHandle: NodeJS.Timeout | undefined = undefined;
     if (timeoutMs !== undefined) {
       timeoutHandle = setTimeout(() => {
         const pendingRequest = pendingRequests[requestId];
         pendingRequest.resolve({
-          error: Error("timeout")
+          error: Error("timeout"),
+          response: undefined
         });
       }, timeoutMs);
     }
@@ -309,7 +205,7 @@ const create = ({
         [requestId]: {
           resolve: (result) => {
             // remove the request from the pending requests
-            const { [requestId]: request, ...otherPendingRequests } = pendingRequests;
+            const { [requestId]: requestToDrop, ...otherPendingRequests } = pendingRequests;
             pendingRequests = otherPendingRequests;
 
             // clear the timeout
@@ -341,25 +237,15 @@ const create = ({
   };
 };
 
-type TJrpc = ReturnType<typeof create>;
+type TJrpc = ReturnType<typeof createJrpc>;
 
 export {
-  create
+  createJrpc
 };
 
 export type {
   TJsonRpcMessage,
-  TJsonRpcRequest,
-  TJsonRpcNotification,
-  TJsonRpcSuccessResponse,
-  TJsonRpcErrorResponse,
   TRequestResponse,
-  TRequestSuccessResponse,
-  TRequestErrorResponse,
-  TRequestNoResponse,
-  TRequestMaybeResponse,
-  TRequestSuccessResult,
-  TRequestErrorResult,
   TRequestResult,
   TJrpc,
   TRequestHandler,

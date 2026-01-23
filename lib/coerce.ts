@@ -141,6 +141,13 @@ type TCoerceMethodResult = {
 };
 
 const coerceMethod = ({ method }: { method: unknown }): TCoerceMethodResult => {
+  if (method === undefined) {
+    return {
+      error: undefined,
+      method: undefined
+    };
+  }
+
   if (typeof method !== "string") {
     return {
       error: Error("invalid field type for method"),
@@ -269,14 +276,14 @@ const coerceJrcpNotification = ({
 
   if (jrpcFields.error !== undefined) {
     return {
-      error: Error("remote end gave an error without id"),
+      error: Error("notification must not have an error (maybe id is missing and this is not a notification?)"),
       jrpcNotification: undefined
     };
   }
 
   if (jrpcFields.result !== undefined) {
     return {
-      error: Error("remote end gave a result without id"),
+      error: Error("notification must not have a result (maybe id is missing and this is not a notification?)"),
       jrpcNotification: undefined
     };
   }
@@ -329,14 +336,14 @@ const coerceJrpcRequest = ({
 
   if (jrpcFields.error !== undefined) {
     return {
-      error: Error("remote end gave an error without id"),
+      error: Error("request must not have an error"),
       jrpcRequest: undefined
     };
   }
 
   if (jrpcFields.result !== undefined) {
     return {
-      error: Error("remote end gave a result without id"),
+      error: Error("request must not have a result"),
       jrpcRequest: undefined
     };
   }
@@ -364,7 +371,7 @@ const coerceJrcpResponse = ({
   jrpcFields,
 }: {
   jrpcFields: TJrpcFields;
-// eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity
 }): TCoerceJrpcResponseResult => {
   if (jrpcFields.id === undefined || jrpcFields.id === null) {
     return {

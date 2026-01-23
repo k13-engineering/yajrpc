@@ -267,7 +267,7 @@ const coerceJrcpNotification = ({
   // eslint-disable-next-line complexity
 }): TCoerceJrcpNotificationResult => {
 
-  if (jrpcFields.id !== undefined && jrpcFields.id !== null) {
+  if (jrpcFields.id !== undefined) {
     return {
       error: Error("notification must not have an id"),
       jrpcNotification: undefined
@@ -320,7 +320,7 @@ const coerceJrpcRequest = ({
   jrpcFields: TJrpcFields;
   // eslint-disable-next-line complexity
 }): TCoerceJrpcRequestResult => {
-  if (jrpcFields.id === undefined || jrpcFields.id === null) {
+  if (jrpcFields.id === undefined) {
     return {
       error: Error("request must have an id"),
       jrpcRequest: undefined
@@ -469,8 +469,7 @@ const coerceJrpcMessage = ({ message }: { message: unknown }): TCoerceJrpcMessag
     };
   }
 
-  if (id === undefined || id === null) {
-
+  if (id === undefined) {
     const { error: notificationError, jrpcNotification } = coerceJrcpNotification({ jrpcFields: coercedJrpcFields });
     if (notificationError !== undefined) {
       return {

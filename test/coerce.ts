@@ -514,7 +514,7 @@ describe("coerceJrpcMessage", () => {
       };
       const result = coerceJrpcMessage({ message });
       assert.ok(result.error instanceof Error);
-      assert.equal(result.error.message, "notification must not have an error (maybe id is missing and this is not a notification?)");
+      assert.equal(result.error.message, "response must have an id");
     });
 
     it("should accept success response with null result", () => {

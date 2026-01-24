@@ -1,4 +1,12 @@
-import type { TJsonRpcError, TJsonRpcMessage, TJsonRpcNotification, TJsonRpcOptionalId, TJsonRpcParameters, TJsonRpcRequest, TJsonRpcResponse } from "./types.ts";
+import type {
+  TJsonRpcError,
+  TJsonRpcMessage,
+  TJsonRpcNotification,
+  TJsonRpcOptionalId,
+  TJsonRpcParameters,
+  TJsonRpcRequest,
+  TJsonRpcResponse
+} from "./types.ts";
 
 type TCoerceParamsResult = {
   error: Error;

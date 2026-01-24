@@ -79,6 +79,26 @@ type TRequestResult = {
   response: TRequestResponse;
 };
 
+
+// -----------
+
+type TRequestHandlerResponse = {
+  result: TRequestResponseValue;
+  error: undefined;
+} | {
+  result: undefined;
+  error: TJsonRpcError;
+} | {
+  result: undefined;
+  error: undefined;
+};
+
+type TRequestHandler = (args: { method: string, params: TJsonRpcParameters | undefined }) => Promise<TRequestHandlerResponse>;
+type TNotificationHandler = (args: { method: string, params: TJsonRpcParameters | undefined }) => void;
+
+type TNotifyMethod = (args: { method: string, params: TJsonRpcParameters }) => void;
+type TRequestMethod = (args: { method: string, params: TJsonRpcParameters, timeoutMs?: number }) => Promise<TRequestResult>;
+
 export type {
   TJsonRpcRequest,
   TJsonRpcResponse,
@@ -94,5 +114,13 @@ export type {
   TRequestErrorResponse,
   TRequestResponseValue,
   TJsonRpcError,
+
+  // -------
+
+  TRequestHandlerResponse,
+  TRequestHandler,
+  TNotificationHandler,
+  TNotifyMethod,
+  TRequestMethod
 };
 /* c8 ignore end */

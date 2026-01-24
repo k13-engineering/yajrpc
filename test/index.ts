@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import { describe, it } from "mocha";
 import { createJrpc } from "../lib/index.ts";
-import type { TJsonRpcMessage, TRequestHandler, TNotificationHandler } from "../lib/index.ts";
+import type { TJsonRpcMessage, TRequestHandler, TNotificationHandler } from "../lib/jrpc.ts";
 
 describe("createJrpc", () => {
   describe("request/response - success", () => {

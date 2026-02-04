@@ -14,6 +14,7 @@ type TWebSocketMessageParser = {
   format: (args: { message: unknown }) => string | Uint8Array;
 };
 
+// eslint-disable-next-line max-statements
 const createWebSocketJrpc = ({
   socket,
 
@@ -52,6 +53,10 @@ const createWebSocketJrpc = ({
     });
     sendQueue = [];
   };
+
+  socket.addEventListener("open", () => {
+    maybeSendNext();
+  });
 
   const sendOrQueueRawMessage = ({ data }: { data: string | Uint8Array }) => {
     sendQueue.push(data);

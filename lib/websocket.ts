@@ -204,4 +204,5 @@ export {
 
 export type {
   TWebsocketJrpcHandle,
+  TWebSocketMessageParser
 };

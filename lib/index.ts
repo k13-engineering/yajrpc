@@ -1,5 +1,13 @@
 import { coerceJrpcMessage } from "./coerce.ts";
-import type { TJsonRpcError, TJsonRpcMandatoryId, TJsonRpcMessage, TJsonRpcParameters, TRequestResponse, TRequestResponseValue, TRequestResult } from "./types.ts";
+import type {
+  TJsonRpcError,
+  TJsonRpcMandatoryId,
+  TJsonRpcMessage,
+  TJsonRpcParameters,
+  TRequestResponse,
+  TRequestResponseValue,
+  TRequestResult
+} from "./types.ts";
 
 type TPendingRequestHandle = {
   resolve: (args: TRequestResult) => void;

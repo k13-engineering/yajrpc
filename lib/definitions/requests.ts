@@ -85,6 +85,7 @@ const createRpcRequestsDefinition = <const TMap extends RpcRequestsDefinitionMap
 
     for (const method of Object.keys(definitions) as Array<keyof TMap & string>) {
       const definition = definitions[method];
+      // eslint-disable-next-line immutable/no-mutation
       (client as Record<string, unknown>)[method] = async (params: unknown) => {
         const formattedParams = definition.paramsParser.format({ value: params });
         const { error: requestError, response } = await request({

@@ -39,6 +39,7 @@ const createWebSocketJrpc = ({
 
   let closedByUs = false;
   let connectionError: Error | undefined = undefined;
+  // eslint-disable-next-line immutable/no-mutation
   socket.binaryType = "arraybuffer";
 
   let sendQueue: (string | Uint8Array)[] = [];
@@ -49,6 +50,7 @@ const createWebSocketJrpc = ({
     }
 
     sendQueue.forEach((data) => {
+      // @ts-expect-error types
       socket.send(data);
     });
     sendQueue = [];
@@ -59,6 +61,7 @@ const createWebSocketJrpc = ({
   });
 
   const sendOrQueueRawMessage = ({ data }: { data: string | Uint8Array }) => {
+    // eslint-disable-next-line fp/no-mutating-methods
     sendQueue.push(data);
     maybeSendNext();
   };

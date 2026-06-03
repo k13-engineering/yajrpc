@@ -6,11 +6,11 @@ import type { TJsonRpcMessage, TRequestHandler, TNotificationHandler } from "../
 describe("createJrpc", () => {
   describe("request/response - success", () => {
     it("should handle successful response", async () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
           // Simulate server response
           setTimeout(() => {
             client.receivedMessage({
@@ -22,7 +22,9 @@ describe("createJrpc", () => {
             });
           }, 10);
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -39,11 +41,11 @@ describe("createJrpc", () => {
     });
 
     it("should handle multiple concurrent requests", async () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
           // Simulate server responses with different delays
           const id = message.id;
           setTimeout(() => {
@@ -56,7 +58,9 @@ describe("createJrpc", () => {
             });
           }, Math.random() * 50);
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -94,7 +98,9 @@ describe("createJrpc", () => {
             });
           }, 10);
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -120,7 +126,9 @@ describe("createJrpc", () => {
         sendMessage: () => {
           // Server doesn't respond - simulating ignore/timeout
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -148,7 +156,9 @@ describe("createJrpc", () => {
             });
           }, 50);
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -165,7 +175,7 @@ describe("createJrpc", () => {
 
   describe("handleRequest - incoming requests", () => {
     it("should handle incoming request with success result", async () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
       const handleRequest: TRequestHandler = async ({ method, params }) => {
         assert.strictEqual(method, "incomingMethod");
         assert.deepStrictEqual(params, { input: "data" });
@@ -177,7 +187,7 @@ describe("createJrpc", () => {
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
         },
         handleRequest,
         handleNotification: () => {}
@@ -195,7 +205,9 @@ describe("createJrpc", () => {
       assert.strictEqual(error, undefined);
 
       // Wait for async handler to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
 
       assert.strictEqual(sentMessages.length, 1);
       assert.strictEqual(sentMessages[0].id, 42);
@@ -203,7 +215,7 @@ describe("createJrpc", () => {
     });
 
     it("should handle incoming request with error result", async () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
       const handleRequest: TRequestHandler = async ({ method }) => {
         return {
           result: undefined,
@@ -217,7 +229,7 @@ describe("createJrpc", () => {
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
         },
         handleRequest,
         handleNotification: () => {}
@@ -233,7 +245,9 @@ describe("createJrpc", () => {
       });
 
       // Wait for async handler to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
 
       assert.strictEqual(sentMessages.length, 1);
       assert.strictEqual(sentMessages[0].id, 123);
@@ -245,7 +259,7 @@ describe("createJrpc", () => {
     });
 
     it("should handle incoming request with no response (ignore)", async () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
       const handleRequest: TRequestHandler = async () => {
         return {
           result: undefined,
@@ -255,7 +269,7 @@ describe("createJrpc", () => {
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
         },
         handleRequest,
         handleNotification: () => {}
@@ -271,7 +285,9 @@ describe("createJrpc", () => {
       });
 
       // Wait for async handler to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => {
+        return setTimeout(resolve, 50);
+      });
 
       // No response should be sent
       assert.strictEqual(sentMessages.length, 0);
@@ -280,13 +296,15 @@ describe("createJrpc", () => {
 
   describe("notifications", () => {
     it("should send notifications without id", () => {
-      const sentMessages: TJsonRpcMessage[] = [];
+      let sentMessages: TJsonRpcMessage[] = [];
 
       const client = createJrpc({
         sendMessage: ({ message }) => {
-          sentMessages.push(message);
+          sentMessages = [...sentMessages, message];
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -302,14 +320,16 @@ describe("createJrpc", () => {
     });
 
     it("should handle incoming notifications", () => {
-      const receivedNotifications: Array<{ method: string, params: unknown }> = [];
+      let receivedNotifications: Array<{ method: string, params: unknown }> = [];
       const handleNotification: TNotificationHandler = ({ method, params }) => {
-        receivedNotifications.push({ method, params });
+        receivedNotifications = [...receivedNotifications, { method, params }];
       };
 
       const client = createJrpc({
         sendMessage: () => {},
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification
       });
 
@@ -333,7 +353,9 @@ describe("createJrpc", () => {
         sendMessage: () => {
           // Never send response
         },
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -353,7 +375,9 @@ describe("createJrpc", () => {
     it("should throw on receivedMessage after close", () => {
       const client = createJrpc({
         sendMessage: () => {},
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -374,7 +398,9 @@ describe("createJrpc", () => {
     it("should return error for null id", () => {
       const client = createJrpc({
         sendMessage: () => {},
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 
@@ -393,7 +419,9 @@ describe("createJrpc", () => {
     it("should return error for response to non-pending request", () => {
       const client = createJrpc({
         sendMessage: () => {},
-        handleRequest: async () => ({ result: undefined, error: undefined }),
+        handleRequest: async () => {
+          return { result: undefined, error: undefined };
+        },
         handleNotification: () => {}
       });
 

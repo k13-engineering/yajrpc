@@ -1,5 +1,7 @@
 import type {
+  TNotificationHandler,
   TNotifyMethod,
+  TRequestHandler,
   TRequestMethod
 } from "../types.ts";
 import type { TRpcNotificationsDefinition } from "./notification.ts";
@@ -55,8 +57,8 @@ const createCombined = <
       outgoingRequests: outgoingRequests as ReturnType<TSideBRequests["createClient"]>,
       outgoingNotifications: outgoingNotifications as ReturnType<TSideBNotifications["createClient"]>,
 
-      handleIncomingRequest: handleRequest,
-      handleIncomingNotification: handleNotification
+      handleIncomingRequest: handleRequest as TRequestHandler,
+      handleIncomingNotification: handleNotification as TNotificationHandler
     };
   };
 
@@ -88,8 +90,8 @@ const createCombined = <
       outgoingRequests: outgoingRequests as ReturnType<TSideARequests["createClient"]>,
       outgoingNotifications: outgoingNotifications as ReturnType<TSideANotifications["createClient"]>,
 
-      handleIncomingRequest: handleRequest,
-      handleIncomingNotification: handleNotification
+      handleIncomingRequest: handleRequest as TRequestHandler,
+      handleIncomingNotification: handleNotification as TNotificationHandler
     };
   };
 
